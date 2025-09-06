@@ -1,5 +1,5 @@
-name: engine
-description: A starting point for Dart libraries or applications.
+name: pocket_gm_engine
+description: Game engine and AI for the Pocket GM American Football game.
 version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 
