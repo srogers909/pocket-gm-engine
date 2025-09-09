@@ -1,6 +1,8 @@
-// TODO: Put public facing types in this file.
+// Core models for the football game engine
+export 'models/game_state.dart';
+export 'models/play_result.dart';
 
-/// Checks if you are awesome. Spoiler: you are.
-class Awesome {
-  bool get isAwesome => true;
-}
+// Core services for game logic
+export 'services/clock_manager.dart';
+export 'services/down_manager.dart';
+export 'services/play_simulator.dart';
