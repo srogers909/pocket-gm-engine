@@ -27,7 +27,7 @@ class PlaySimulator {
     final timeElapsed = Duration(seconds: 25 + _random.nextInt(21));
     
     // Check for touchdown
-    final distanceToGoal = gameState.yardLine;
+    final distanceToGoal = 100 - gameState.yardLine;
     final isScore = yardsGained >= distanceToGoal;
     
     // Check for first down (if not scoring)
@@ -67,7 +67,7 @@ class PlaySimulator {
   /// - Rare long gains (15+ yards)
   /// - Considers field position for goal line situations
   int _generateRunYards(GameState gameState) {
-    final distanceToGoal = gameState.yardLine;
+    final distanceToGoal = 100 - gameState.yardLine;
     
     // Goal line situations: limited upside, more conservative
     if (distanceToGoal <= 5) {

@@ -21,9 +21,10 @@ class GameState {
   /// Yards needed for a first down
   final int yardsToGo;
   
-  /// Current yard line (0-100, with 50 being midfield)
-  /// Values 1-49 represent distance from the goal line the offense is attacking
-  /// Values 51-99 represent distance from the goal line the offense is defending
+  /// Current yard line (0-100, where 0 is your own goal line and 100 is opponent's goal line)
+  /// Values 0-49 represent your own territory
+  /// Value 50 is midfield
+  /// Values 51-100 represent opponent's territory
   final int yardLine;
   
   /// True if home team has possession, false if away team has possession
@@ -61,7 +62,7 @@ class GameState {
       gameClock: Duration(minutes: 15), // 15 minutes per quarter
       down: 1,
       yardsToGo: 10,
-      yardLine: 25, // Typical kickoff return position
+      yardLine: 25, // Typical kickoff return position (25 yards from own goal)
       homeTeamHasPossession: false, // Away team typically receives kickoff
       homeTimeouts: 3,
       awayTimeouts: 3,
@@ -110,9 +111,29 @@ class GameState {
   /// Returns true if this is overtime
   bool get isOvertime => quarter > 4;
   
-  /// Returns a string representation of the current down and distance
+  /// Returns the territory indicator based on yard line position
+  String get territory {
+    if (yardLine < 50) {
+      return 'OWN';
+    } else if (yardLine == 50) {
+      return 'MID';
+    } else {
+      return 'OPP';
+    }
+  }
+  
+  /// Returns the display yard line (1-50 scale for user-friendly display)
+  int get displayYardLine {
+    if (yardLine <= 50) {
+      return yardLine;
+    } else {
+      return 100 - yardLine;
+    }
+  }
+  
+  /// Returns a string representation of the current down and distance with territory
   String get downAndDistance {
-    return '${down}${_getOrdinalSuffix(down)} & $yardsToGo';
+    return '${down}${_getOrdinalSuffix(down)} & $yardsToGo at $territory $displayYardLine';
   }
   
   /// Helper method to get ordinal suffix for down number

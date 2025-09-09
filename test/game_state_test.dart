@@ -106,27 +106,27 @@ void main() {
     group('downAndDistance', () {
       test('should format down and distance correctly for 1st down', () {
         final gameState = GameState.kickoff().copyWith(down: 1, yardsToGo: 10);
-        expect(gameState.downAndDistance, equals('1st & 10'));
+        expect(gameState.downAndDistance, equals('1st & 10 at OWN 25'));
       });
 
       test('should format down and distance correctly for 2nd down', () {
         final gameState = GameState.kickoff().copyWith(down: 2, yardsToGo: 7);
-        expect(gameState.downAndDistance, equals('2nd & 7'));
+        expect(gameState.downAndDistance, equals('2nd & 7 at OWN 25'));
       });
 
       test('should format down and distance correctly for 3rd down', () {
         final gameState = GameState.kickoff().copyWith(down: 3, yardsToGo: 2);
-        expect(gameState.downAndDistance, equals('3rd & 2'));
+        expect(gameState.downAndDistance, equals('3rd & 2 at OWN 25'));
       });
 
       test('should format down and distance correctly for 4th down', () {
         final gameState = GameState.kickoff().copyWith(down: 4, yardsToGo: 1);
-        expect(gameState.downAndDistance, equals('4th & 1'));
+        expect(gameState.downAndDistance, equals('4th & 1 at OWN 25'));
       });
 
       test('should handle long distance correctly', () {
         final gameState = GameState.kickoff().copyWith(down: 2, yardsToGo: 15);
-        expect(gameState.downAndDistance, equals('2nd & 15'));
+        expect(gameState.downAndDistance, equals('2nd & 15 at OWN 25'));
       });
     });
 

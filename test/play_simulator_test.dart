@@ -66,7 +66,7 @@ void main() {
           gameClock: const Duration(minutes: 15),
           down: 1,
           yardsToGo: 10,
-          yardLine: 5, // 5 yards from goal
+          yardLine: 95, // 5 yards from opponent's goal (100-5=95)
           homeTeamHasPossession: true,
           gameInProgress: true,
           homeTimeouts: 3,
@@ -92,7 +92,7 @@ void main() {
           gameClock: const Duration(minutes: 15),
           down: 1,
           yardsToGo: 10,
-          yardLine: 2, // 2 yards from goal
+          yardLine: 98, // 2 yards from opponent's goal (100-2=98)
           homeTeamHasPossession: true,
           gameInProgress: true,
           homeTimeouts: 3,
@@ -153,7 +153,8 @@ void main() {
         bool foundTurnover = false;
 
         // Act - Run many plays to find occasional turnover
-        for (int i = 0; i < 200; i++) {
+        // With 2% fumble rate, 500 attempts gives >99.99% chance of finding one
+        for (int i = 0; i < 500; i++) {
           final result = playSimulator.simulateRunPlay(gameState);
           if (result.isTurnover) {
             expect(result.playType, equals(PlayType.rush));

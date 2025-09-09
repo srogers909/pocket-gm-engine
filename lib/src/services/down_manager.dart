@@ -28,7 +28,7 @@ class DownManager {
       return _handleScore(currentState, playResult);
     }
     
-    // Calculate new yard line
+    // Calculate new yard line using simple addition
     final newYardLine = _calculateNewYardLine(currentState, playResult);
     
     // Check if we got a first down
@@ -62,25 +62,31 @@ class DownManager {
   
   /// Calculates the new yard line after a play.
   /// 
-  /// Takes into account field boundaries (1-99 yard field).
-  /// Yard line represents distance from goal line - lower numbers are closer to goal.
+  /// Simple football field logic: yardLine represents position from 0-100
+  /// - 0 = your own goal line
+  /// - 50 = midfield  
+  /// - 100 = opponent's goal line
+  /// - Positive yards gained always advance toward opponent's goal (increase yardLine)
+  /// - Negative yards (sacks, penalties) move away from opponent's goal (decrease yardLine)
   int _calculateNewYardLine(GameState currentState, PlayResult playResult) {
-    // All teams move toward goal line (lower yard numbers)
-    // Positive yards gained means getting closer to goal (lower yard line)
-    final newYardLine = currentState.yardLine - playResult.yardsGained;
+    final currentYardLine = currentState.yardLine;
+    final yardsGained = playResult.yardsGained;
     
-    // Ensure yard line stays within field boundaries (1-99)
-    // If < 1, it's a touchdown. If > 99, it's a safety (rare)
-    return newYardLine.clamp(1, 99);
+    // Simple addition: positive gains advance toward opponent's goal
+    final newYardLine = currentYardLine + yardsGained;
+    
+    // Clamp to valid field boundaries (0-100)
+    return newYardLine.clamp(0, 100);
   }
   
   /// Handles a turnover (fumble, interception, etc.).
   /// 
   /// Changes possession and resets to 1st and 10.
+  /// The new team starts from the complement position (100 - current position).
   GameState _handleTurnover(GameState currentState, PlayResult playResult) {
     final newYardLine = _calculateNewYardLine(currentState, playResult);
     
-    // Flip the yard line for the new possession team
+    // Flip the field position for the new possession team
     final adjustedYardLine = 100 - newYardLine;
     
     return currentState.copyWith(
@@ -96,8 +102,6 @@ class DownManager {
   /// For touchdowns, this would typically trigger a kickoff.
   /// For now, we'll just mark the score and prepare for next possession.
   GameState _handleScore(GameState currentState, PlayResult playResult) {
-    final newYardLine = _calculateNewYardLine(currentState, playResult);
-    
     // Add points to the scoring team
     int newHomeScore = currentState.homeScore;
     int newAwayScore = currentState.awayScore;
@@ -115,7 +119,7 @@ class DownManager {
       awayScore: newAwayScore,
       down: 1,
       yardsToGo: 10,
-      yardLine: 25,
+      yardLine: 25, // Kickoff return position
       homeTeamHasPossession: !currentState.homeTeamHasPossession,
     );
   }
@@ -124,7 +128,7 @@ class DownManager {
   /// 
   /// Changes possession at the current spot.
   GameState _handleTurnoverOnDowns(GameState currentState, int yardLine) {
-    // Flip the yard line for the new possession team
+    // Flip the field position for the new possession team
     final adjustedYardLine = 100 - yardLine;
     
     return currentState.copyWith(
@@ -139,22 +143,23 @@ class DownManager {
   /// 
   /// Returns true if the team is in scoring position.
   bool isInRedZone(GameState gameState) {
-    return gameState.yardLine <= 20;
+    return gameState.yardLine >= 80; // Within 20 yards of opponent's goal (100-20=80)
   }
   
   /// Determines if the offense is in goal-to-go situation.
   /// 
-  /// Returns true if the yards to go is less than the distance to the goal line.
+  /// Returns true if the yards to go is greater than the distance to the goal line.
   bool isGoalToGo(GameState gameState) {
-    return gameState.yardsToGo >= gameState.yardLine;
+    final yardsToGoal = 100 - gameState.yardLine;
+    return gameState.yardsToGo >= yardsToGoal;
   }
   
   /// Gets the effective yards to go (accounts for goal line).
   /// 
-  /// In goal-to-go situations, the yards to go is effectively the yard line.
+  /// In goal-to-go situations, the yards to go is effectively the distance to goal.
   int getEffectiveYardsToGo(GameState gameState) {
     if (isGoalToGo(gameState)) {
-      return gameState.yardLine;
+      return 100 - gameState.yardLine; // Distance to goal line
     }
     return gameState.yardsToGo;
   }
@@ -165,15 +170,15 @@ class DownManager {
   String getFieldPositionDescription(GameState gameState) {
     final yardLine = gameState.yardLine;
     
-    if (yardLine <= 10) {
+    if (yardLine >= 90) {
       return 'Goal Line';
-    } else if (yardLine <= 20) {
+    } else if (yardLine >= 80) {
       return 'Red Zone';
-    } else if (yardLine <= 40) {
+    } else if (yardLine >= 60) {
       return 'Scoring Territory';
-    } else if (yardLine <= 60) {
+    } else if (yardLine >= 40) {
       return 'Midfield';
-    } else if (yardLine <= 80) {
+    } else if (yardLine >= 20) {
       return 'Own Territory';
     } else {
       return 'Deep Own Territory';
