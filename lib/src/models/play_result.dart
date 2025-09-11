@@ -28,6 +28,18 @@ class PlayResult {
   /// Optional description of what happened on the play
   final String? description;
   
+  /// The player who executed the play (rusher, passer, kicker, etc.)
+  final String? primaryPlayer;
+  
+  /// The target player for passes (receiver) or null for other plays
+  final String? targetPlayer;
+  
+  /// The defending player who made the tackle/caused turnover (if any)
+  final String? defender;
+  
+  /// Additional players involved in the play (blockers, coverage, etc.)
+  final List<String> involvedPlayers;
+  
   const PlayResult({
     required this.playType,
     required this.yardsGained,
@@ -37,6 +49,10 @@ class PlayResult {
     this.isFirstDown = false,
     this.stopClock = false,
     this.description,
+    this.primaryPlayer,
+    this.targetPlayer,
+    this.defender,
+    this.involvedPlayers = const [],
   });
   
   /// Creates a simple rushing play result
@@ -45,6 +61,9 @@ class PlayResult {
     Duration? timeElapsed,
     bool isFirstDown = false,
     String? description,
+    String? primaryPlayer,
+    String? defender,
+    List<String> involvedPlayers = const [],
   }) {
     return PlayResult(
       playType: PlayType.rush,
@@ -53,6 +72,9 @@ class PlayResult {
       isFirstDown: isFirstDown,
       stopClock: false, // Rush plays typically don't stop the clock
       description: description,
+      primaryPlayer: primaryPlayer,
+      defender: defender,
+      involvedPlayers: involvedPlayers,
     );
   }
   
@@ -63,6 +85,10 @@ class PlayResult {
     bool isFirstDown = false,
     bool isComplete = true,
     String? description,
+    String? primaryPlayer,
+    String? targetPlayer,
+    String? defender,
+    List<String> involvedPlayers = const [],
   }) {
     return PlayResult(
       playType: PlayType.pass,
@@ -71,6 +97,10 @@ class PlayResult {
       isFirstDown: isFirstDown,
       stopClock: !isComplete, // Incomplete passes stop the clock
       description: description,
+      primaryPlayer: primaryPlayer,
+      targetPlayer: targetPlayer,
+      defender: defender,
+      involvedPlayers: involvedPlayers,
     );
   }
   
@@ -80,6 +110,10 @@ class PlayResult {
     required int yardsGained,
     Duration? timeElapsed,
     String? description,
+    String? primaryPlayer,
+    String? targetPlayer,
+    String? defender,
+    List<String> involvedPlayers = const [],
   }) {
     return PlayResult(
       playType: playType,
@@ -88,6 +122,10 @@ class PlayResult {
       isTurnover: true,
       stopClock: true, // Turnovers stop the clock
       description: description,
+      primaryPlayer: primaryPlayer,
+      targetPlayer: targetPlayer,
+      defender: defender,
+      involvedPlayers: involvedPlayers,
     );
   }
   
@@ -97,6 +135,10 @@ class PlayResult {
     required int yardsGained,
     Duration? timeElapsed,
     String? description,
+    String? primaryPlayer,
+    String? targetPlayer,
+    String? defender,
+    List<String> involvedPlayers = const [],
   }) {
     return PlayResult(
       playType: playType,
@@ -105,6 +147,10 @@ class PlayResult {
       isScore: true,
       stopClock: true, // Scores stop the clock
       description: description,
+      primaryPlayer: primaryPlayer,
+      targetPlayer: targetPlayer,
+      defender: defender,
+      involvedPlayers: involvedPlayers,
     );
   }
   

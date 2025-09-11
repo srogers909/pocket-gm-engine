@@ -1,14 +1,62 @@
 import 'package:test/test.dart';
-import '../lib/src/models/game_state.dart';
-import '../lib/src/models/play_result.dart';
-import '../lib/src/services/play_simulator.dart';
+import 'package:pocket_gm_engine/src/models/game_state.dart';
+import 'package:pocket_gm_engine/src/models/play_result.dart';
+import 'package:pocket_gm_engine/src/services/play_simulator.dart';
+import 'package:pocket_gm_engine/src/models/play_call.dart';
+import 'package:pocket_gm_generator/pocket_gm_generator.dart';
 
 void main() {
   group('PlaySimulator', () {
     late PlaySimulator playSimulator;
+    late Team mockOffensiveTeam;
+    late Team mockDefensiveTeam;
 
     setUp(() {
       playSimulator = PlaySimulator();
+      
+      // Create mock teams for testing
+      final mockStadium = Stadium(
+        name: 'Test Stadium',
+        location: 'Test City, TS',
+        turfType: TurfType.grass,
+        roofType: RoofType.open,
+        capacity: 65000,
+        yearBuilt: 2000,
+        luxurySuites: 100,
+        concessionsRating: 75,
+        parkingRating: 70,
+        homeFieldAdvantage: 5,
+      );
+      
+      mockOffensiveTeam = Team(
+        name: 'Test Offense',
+        abbreviation: 'TO',
+        primaryColor: '#FF0000',
+        secondaryColor: '#FFFFFF',
+        roster: [], // Empty roster for basic testing
+        stadium: mockStadium,
+        fanHappiness: 75,
+        wins: 5,
+        losses: 3,
+        city: 'Test City',
+        conference: 'Test Conference',
+        division: 'Test Division',
+      );
+      
+      mockDefensiveTeam = Team(
+        name: 'Test Defense',
+        abbreviation: 'TD',
+        primaryColor: '#0000FF',
+        secondaryColor: '#FFFFFF',
+        roster: [], // Empty roster for basic testing
+        stadium: mockStadium,
+        fanHappiness: 70,
+        wins: 3,
+        losses: 5,
+        city: 'Test City 2',
+        conference: 'Test Conference',
+        division: 'Test Division',
+      );
     });
 
     group('simulateRunPlay', () {
@@ -17,7 +65,7 @@ void main() {
         final gameState = GameState.kickoff();
 
         // Act
-        final result = playSimulator.simulateRunPlay(gameState);
+        final result = playSimulator.simulateRunPlay(gameState, mockOffensiveTeam, mockDefensiveTeam);
 
         // Assert
         expect(result.playType, equals(PlayType.rush));
@@ -34,7 +82,7 @@ void main() {
 
         // Act - Generate multiple plays to test distribution
         for (int i = 0; i < 100; i++) {
-          final result = playSimulator.simulateRunPlay(gameState);
+          final result = playSimulator.simulateRunPlay(gameState, mockOffensiveTeam, mockDefensiveTeam);
           results.add(result.yardsGained);
         }
 
@@ -50,7 +98,7 @@ void main() {
         final gameState = GameState.kickoff();
 
         // Act
-        final result = playSimulator.simulateRunPlay(gameState);
+        final result = playSimulator.simulateRunPlay(gameState, mockOffensiveTeam, mockDefensiveTeam);
 
         // Assert
         expect(result.timeElapsed.inSeconds, greaterThanOrEqualTo(25));
@@ -74,7 +122,7 @@ void main() {
         );
 
         // Act
-        final result = playSimulator.simulateRunPlay(gameState);
+        final result = playSimulator.simulateRunPlay(gameState, mockOffensiveTeam, mockDefensiveTeam);
 
         // Assert
         expect(result.playType, equals(PlayType.rush));
@@ -102,7 +150,7 @@ void main() {
         // Act - Run multiple times to find touchdown scenario
         bool foundTouchdown = false;
         for (int i = 0; i < 50; i++) {
-          final result = playSimulator.simulateRunPlay(gameState);
+          final result = playSimulator.simulateRunPlay(gameState, mockOffensiveTeam, mockDefensiveTeam);
           if (result.yardsGained >= 2) {
             expect(result.isScore, isTrue);
             foundTouchdown = true;
@@ -133,7 +181,7 @@ void main() {
         // Act - Run multiple times to find first down scenario
         bool foundFirstDown = false;
         for (int i = 0; i < 50; i++) {
-          final result = playSimulator.simulateRunPlay(gameState);
+          final result = playSimulator.simulateRunPlay(gameState, mockOffensiveTeam, mockDefensiveTeam);
           if (result.yardsGained >= 5) {
             expect(result.isFirstDown, isTrue);
             foundFirstDown = true;
@@ -155,7 +203,7 @@ void main() {
         // Act - Run many plays to find occasional turnover
         // With 2% fumble rate, 500 attempts gives >99.99% chance of finding one
         for (int i = 0; i < 500; i++) {
-          final result = playSimulator.simulateRunPlay(gameState);
+          final result = playSimulator.simulateRunPlay(gameState, mockOffensiveTeam, mockDefensiveTeam);
           if (result.isTurnover) {
             expect(result.playType, equals(PlayType.rush));
             foundTurnover = true;
@@ -172,7 +220,7 @@ void main() {
         final gameState = GameState.kickoff();
 
         // Act
-        final result = playSimulator.simulateRunPlay(gameState);
+        final result = playSimulator.simulateRunPlay(gameState, mockOffensiveTeam, mockDefensiveTeam);
 
         // Assert - Run plays that don't go out of bounds shouldn't stop clock
         if (!result.isScore && !result.isTurnover) {
@@ -182,12 +230,70 @@ void main() {
     });
 
     group('simulatePlay', () {
-      test('should delegate to simulateRunPlay for now', () {
+      test('should handle run play calls correctly', () {
         // Arrange
         final gameState = GameState.kickoff();
+        final playCall = PlayCall.run(OffensiveRunPlay.insideRun);
+        
+        // Create mock teams for testing
+        final testStadium1 = Stadium(
+          name: 'Test Stadium',
+          location: 'Test City, TS',
+          turfType: TurfType.grass,
+          roofType: RoofType.open,
+          capacity: 65000,
+          yearBuilt: 2000,
+          luxurySuites: 100,
+          concessionsRating: 75,
+          parkingRating: 70,
+          homeFieldAdvantage: 5,
+        );
+        
+        final testStadium2 = Stadium(
+          name: 'Test Stadium 2',
+          location: 'Test City 2, TS',
+          turfType: TurfType.grass,
+          roofType: RoofType.open,
+          capacity: 65000,
+          yearBuilt: 2000,
+          luxurySuites: 100,
+          concessionsRating: 75,
+          parkingRating: 70,
+          homeFieldAdvantage: 5,
+        );
+        
+        final offensiveTeam = Team(
+          name: 'Test Offense',
+          abbreviation: 'TO',
+          primaryColor: '#FF0000',
+          secondaryColor: '#FFFFFF',
+          roster: [], // Empty roster for basic testing
+          stadium: testStadium1,
+          fanHappiness: 75,
+          wins: 5,
+          losses: 3,
+          city: 'Test City',
+          conference: 'Test Conference',
+          division: 'Test Division',
+        );
+        
+        final defensiveTeam = Team(
+          name: 'Test Defense',
+          abbreviation: 'TD',
+          primaryColor: '#0000FF',
+          secondaryColor: '#FFFFFF',
+          roster: [], // Empty roster for basic testing
+          stadium: testStadium2,
+          fanHappiness: 70,
+          wins: 3,
+          losses: 5,
+          city: 'Test City 2',
+          conference: 'Test Conference',
+          division: 'Test Division',
+        );
 
         // Act
-        final result = playSimulator.simulatePlay(gameState);
+        final result = playSimulator.simulatePlay(gameState, playCall, offensiveTeam, defensiveTeam);
 
         // Assert
         expect(result.playType, equals(PlayType.rush));

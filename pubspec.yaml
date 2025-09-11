@@ -8,6 +8,8 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
+  pocket_gm_generator:
+    path: ../generator
   # path: ^1.9.0
 
 dev_dependencies:

@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
-import '../lib/src/models/game_state.dart';
-import '../lib/src/models/play_result.dart';
-import '../lib/src/services/clock_manager.dart';
+import 'package:pocket_gm_engine/src/models/game_state.dart';
+import 'package:pocket_gm_engine/src/models/play_result.dart';
+import 'package:pocket_gm_engine/src/services/clock_manager.dart';
 
 void main() {
   group('ClockManager', () {

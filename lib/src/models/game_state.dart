@@ -133,7 +133,7 @@ class GameState {
   
   /// Returns a string representation of the current down and distance with territory
   String get downAndDistance {
-    return '${down}${_getOrdinalSuffix(down)} & $yardsToGo at $territory $displayYardLine';
+    return '$down${_getOrdinalSuffix(down)} & $yardsToGo at $territory $displayYardLine';
   }
   
   /// Helper method to get ordinal suffix for down number
@@ -158,7 +158,7 @@ class GameState {
     final time = '${gameClock.inMinutes}:${(gameClock.inSeconds % 60).toString().padLeft(2, '0')}';
     final possession = homeTeamHasPossession ? 'HOME' : 'AWAY';
     
-    return 'GameState(${homeScore}-${awayScore}, $quarterStr $time, $downAndDistance at $yardLine, $possession possession)';
+    return 'GameState($homeScore-$awayScore, $quarterStr $time, $downAndDistance at $yardLine, $possession possession)';
   }
   
   @override

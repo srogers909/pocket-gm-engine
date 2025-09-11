@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import '../lib/src/models/play_result.dart';
+import 'package:pocket_gm_engine/src/models/play_result.dart';
 
 void main() {
   group('PlayResult', () {

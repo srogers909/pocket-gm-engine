@@ -76,7 +76,51 @@ enum DefensivePlay {
   stackTheBox,
 }
 
-/// Represents a complete play call including type and specific play
+/// Represents the key players involved in a play
+class PlayPlayers {
+  /// Quarterback executing the play
+  final dynamic quarterback;
+  
+  /// Primary skill position player (RB for runs, WR/TE for passes)
+  final dynamic primarySkillPlayer;
+  
+  /// Primary defender covering/tackling the play
+  final dynamic primaryDefender;
+  
+  /// Offensive line average rating (simplified for now)
+  final double offensiveLineRating;
+  
+  /// Defensive line average rating (simplified for now)
+  final double defensiveLineRating;
+
+  PlayPlayers({
+    required this.quarterback,
+    this.primarySkillPlayer,
+    this.primaryDefender,
+    this.offensiveLineRating = 50.0,
+    this.defensiveLineRating = 50.0,
+  });
+}
+
+/// Represents coaching staff influence on a play
+class PlayCoaching {
+  /// Offensive coordinator for scheme bonuses
+  final dynamic offensiveCoordinator;
+  
+  /// Defensive coordinator for scheme bonuses
+  final dynamic defensiveCoordinator;
+  
+  /// Head coach for game management and leadership bonuses
+  final dynamic headCoach;
+
+  PlayCoaching({
+    this.offensiveCoordinator,
+    this.defensiveCoordinator,
+    this.headCoach,
+  });
+}
+
+/// Represents a complete play call including type, specific play, and player data
 class PlayCall {
   /// The primary category of play (pass, run, or special teams)
   final OffensivePlayType? offensiveType;
@@ -93,12 +137,24 @@ class PlayCall {
   /// Defensive play if applicable
   final DefensivePlay? defensivePlay;
 
+  /// Key players involved in this play
+  final PlayPlayers? players;
+
+  /// Coaching staff influence on this play
+  final PlayCoaching? coaching;
+  
+  /// Referee for penalty calling tendencies
+  final dynamic referee;
+
   PlayCall._({
     this.offensiveType,
     this.passPlay,
     this.runPlay,
     this.specialTeamsPlay,
     this.defensivePlay,
+    this.players,
+    this.coaching,
+    this.referee,
   });
 
   /// Creates a pass play call
@@ -128,6 +184,24 @@ class PlayCall {
   factory PlayCall.defense(DefensivePlay defensivePlay) {
     return PlayCall._(
       defensivePlay: defensivePlay,
+    );
+  }
+
+  /// Creates a copy of this PlayCall with additional player and coaching data
+  PlayCall withPlayerData({
+    PlayPlayers? players,
+    PlayCoaching? coaching,
+    dynamic referee,
+  }) {
+    return PlayCall._(
+      offensiveType: offensiveType,
+      passPlay: passPlay,
+      runPlay: runPlay,
+      specialTeamsPlay: specialTeamsPlay,
+      defensivePlay: defensivePlay,
+      players: players ?? this.players,
+      coaching: coaching ?? this.coaching,
+      referee: referee ?? this.referee,
     );
   }
 
@@ -257,7 +331,7 @@ class PlayCall {
 
   @override
   String toString() {
-    return 'PlayCall: ${description}';
+    return 'PlayCall: $description';
   }
 
   @override

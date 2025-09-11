@@ -1,7 +1,7 @@
 import 'dart:math';
 import '../models/game_state.dart';
 import '../models/play_call.dart';
-import '../../../../generator/lib/src/models/staff.dart';
+import 'package:pocket_gm_generator/pocket_gm_generator.dart';
 
 /// AI service responsible for making intelligent play calls for CPU teams.
 /// 
@@ -19,7 +19,8 @@ class AICoach {
   /// - Score differential
   /// - Time remaining
   /// - Coach ratings (affects decision quality and tendencies)
-  PlayCall makeOffensivePlayCall(GameState gameState, TeamStaff teamStaff) {
+  PlayCall makeOffensivePlayCall(GameState gameState, Team team) {
+    final teamStaff = team.staff!;
     final headCoach = teamStaff.headCoach;
     final offensiveCoordinator = teamStaff.offensiveCoordinator;
 
@@ -33,7 +34,28 @@ class AICoach {
     }
 
     // Determine offensive play call
-    return _selectOffensivePlay(gameState, headCoach, offensiveCoordinator);
+    return _selectOffensivePlay(gameState, headCoach, offensiveCoordinator, team);
+  }
+
+  /// Legacy method for backward compatibility - accepts TeamStaff
+  @Deprecated('Use makeOffensivePlayCall(GameState, Team) instead')
+  PlayCall makeOffensivePlayCallLegacy(GameState gameState, TeamStaff teamStaff) {
+    // For legacy support, create a minimal team object or handle differently
+    // This method should be phased out as callers migrate to the new signature
+    final headCoach = teamStaff.headCoach;
+    final offensiveCoordinator = teamStaff.offensiveCoordinator;
+
+    // Special teams situations
+    if (_shouldPunt(gameState, headCoach)) {
+      return PlayCall.specialTeams(SpecialTeamsPlay.punt);
+    }
+
+    if (_shouldAttemptFieldGoal(gameState, headCoach)) {
+      return PlayCall.specialTeams(SpecialTeamsPlay.kickFG);
+    }
+
+    // Return basic play call without player data
+    return _selectOffensivePlayLegacy(gameState, headCoach, offensiveCoordinator);
   }
 
   /// Makes a defensive play call based on the game situation and coaching staff.
@@ -43,16 +65,26 @@ class AICoach {
   /// - Offensive tendencies and field position
   /// - Score differential and game situation
   /// - Defensive coordinator ratings and tendencies
-  PlayCall makeDefensivePlayCall(GameState gameState, TeamStaff teamStaff) {
+  PlayCall makeDefensivePlayCall(GameState gameState, Team team) {
+    final teamStaff = team.staff!;
     final headCoach = teamStaff.headCoach;
     final defensiveCoordinator = teamStaff.defensiveCoordinator;
 
-    return _selectDefensivePlay(gameState, headCoach, defensiveCoordinator);
+    return _selectDefensivePlay(gameState, headCoach, defensiveCoordinator, team);
+  }
+
+  /// Legacy method for backward compatibility - accepts TeamStaff
+  @Deprecated('Use makeDefensivePlayCall(GameState, Team) instead')
+  PlayCall makeDefensivePlayCallLegacy(GameState gameState, TeamStaff teamStaff) {
+    final headCoach = teamStaff.headCoach;
+    final defensiveCoordinator = teamStaff.defensiveCoordinator;
+
+    return _selectDefensivePlayLegacy(gameState, headCoach, defensiveCoordinator);
   }
 
   /// Legacy method for backward compatibility - defaults to offensive play calling
   PlayCall makePlayCall(GameState gameState, TeamStaff teamStaff) {
-    return makeOffensivePlayCall(gameState, teamStaff);
+    return makeOffensivePlayCallLegacy(gameState, teamStaff);
   }
 
   /// Determines if the team should punt based on game situation and coaching.
@@ -128,6 +160,157 @@ class AICoach {
     GameState gameState,
     HeadCoach headCoach,
     OffensiveCoordinator offensiveCoordinator,
+    Team team,
+  ) {
+    // Determine base play type preference
+    final passingPreference = offensiveCoordinator.passingOffense / 100.0;
+    final rushingPreference = offensiveCoordinator.rushingOffense / 100.0;
+    
+    // Situational factors
+    final isShortYardage = gameState.yardsToGo <= 3;
+    final isLongYardage = gameState.yardsToGo > 7;
+    final isRedZone = gameState.yardLine > 80;
+    final isDesperationTime = _isDesperationSituation(gameState);
+
+    // Calculate play type probability
+    double passChance = 0.5; // Base 50/50
+
+    // Adjust based on coordinator strengths
+    final coordinatorBias = (passingPreference - rushingPreference) * 0.3;
+    passChance += coordinatorBias;
+
+    // Situational adjustments
+    if (isShortYardage) {
+      passChance -= 0.2; // Favor running in short yardage
+    }
+    
+    if (isLongYardage) {
+      passChance += 0.25; // Favor passing in long yardage
+    }
+    
+    if (isRedZone) {
+      passChance += 0.1; // Slightly favor passing in red zone
+    }
+    
+    if (isDesperationTime) {
+      passChance += 0.4; // Heavily favor passing when time is short
+    }
+
+    // Make the decision
+    PlayCall baseCall;
+    if (_random.nextDouble() < passChance) {
+      baseCall = _selectPassPlay(gameState, offensiveCoordinator);
+    } else {
+      baseCall = _selectRunPlay(gameState, offensiveCoordinator);
+    }
+
+    // Populate player and coaching data
+    return _populatePlayCallData(baseCall, team);
+  }
+
+  /// Populates a PlayCall with player and coaching data from the team.
+  PlayCall _populatePlayCallData(PlayCall baseCall, Team team) {
+    final teamStaff = team.staff!;
+    final roster = team.roster;
+    
+    // Select key players for this play
+    final quarterback = _selectQuarterback(roster);
+    final primarySkillPlayer = _selectPrimarySkillPlayer(baseCall, roster);
+    final primaryDefender = _selectPrimaryDefender(baseCall, roster);
+    final offensiveLineRating = _calculateOffensiveLineRating(roster);
+    final defensiveLineRating = _calculateDefensiveLineRating(roster);
+    
+    // Create PlayPlayers data
+    final playPlayers = PlayPlayers(
+      quarterback: quarterback,
+      primarySkillPlayer: primarySkillPlayer,
+      primaryDefender: primaryDefender,
+      offensiveLineRating: offensiveLineRating.toDouble(),
+      defensiveLineRating: defensiveLineRating.toDouble(),
+    );
+    
+    // Create PlayCoaching data
+    final playCoaching = PlayCoaching(
+      offensiveCoordinator: teamStaff.offensiveCoordinator,
+      defensiveCoordinator: teamStaff.defensiveCoordinator,
+    );
+    
+    // Use the new withPlayerData method to enhance the PlayCall
+    return baseCall.withPlayerData(
+      players: playPlayers,
+      coaching: playCoaching,
+    );
+  }
+
+  /// Selects the best quarterback from the roster.
+  Player? _selectQuarterback(List<Player> roster) {
+    final quarterbacks = roster.where((p) => p.primaryPosition == 'QB').toList();
+    if (quarterbacks.isEmpty) return null;
+    
+    // Sort by overall rating and return the best
+    quarterbacks.sort((a, b) => b.overallRating.compareTo(a.overallRating));
+    return quarterbacks.first;
+  }
+
+  /// Selects the primary skill player for this play based on play type.
+  Player? _selectPrimarySkillPlayer(PlayCall playCall, List<Player> roster) {
+    if (playCall.isPass) {
+      // For pass plays, select best receiver
+      final receivers = roster.where((p) => p.primaryPosition == 'WR' || p.primaryPosition == 'TE').toList();
+      if (receivers.isEmpty) return null;
+      receivers.sort((a, b) => b.overallRating.compareTo(a.overallRating));
+      return receivers.first;
+    } else if (playCall.isRun) {
+      // For run plays, select best running back
+      final runningBacks = roster.where((p) => p.primaryPosition == 'RB').toList();
+      if (runningBacks.isEmpty) return null;
+      runningBacks.sort((a, b) => b.overallRating.compareTo(a.overallRating));
+      return runningBacks.first;
+    }
+    return null;
+  }
+
+  /// Selects the primary defender for this play.
+  Player? _selectPrimaryDefender(PlayCall playCall, List<Player> roster) {
+    if (playCall.isPass) {
+      // For pass plays, select best defensive back
+      final defensiveBacks = roster.where((p) => p.primaryPosition == 'CB' || p.primaryPosition == 'S').toList();
+      if (defensiveBacks.isEmpty) return null;
+      defensiveBacks.sort((a, b) => b.overallRating.compareTo(a.overallRating));
+      return defensiveBacks.first;
+    } else if (playCall.isRun) {
+      // For run plays, select best linebacker
+      final linebackers = roster.where((p) => p.primaryPosition == 'LB').toList();
+      if (linebackers.isEmpty) return null;
+      linebackers.sort((a, b) => b.overallRating.compareTo(a.overallRating));
+      return linebackers.first;
+    }
+    return null;
+  }
+
+  /// Calculates the average rating of the offensive line.
+  int _calculateOffensiveLineRating(List<Player> roster) {
+    final offensiveLinemen = roster.where((p) => p.primaryPosition == 'OL').toList();
+    if (offensiveLinemen.isEmpty) return 50; // Default average rating
+    
+    final totalRating = offensiveLinemen.fold<int>(0, (sum, player) => sum + player.overallRating);
+    return totalRating ~/ offensiveLinemen.length;
+  }
+
+  /// Calculates the average rating of the defensive line.
+  int _calculateDefensiveLineRating(List<Player> roster) {
+    final defensiveLinemen = roster.where((p) => p.primaryPosition == 'DL').toList();
+    if (defensiveLinemen.isEmpty) return 50; // Default average rating
+    
+    final totalRating = defensiveLinemen.fold<int>(0, (sum, player) => sum + player.overallRating);
+    return totalRating ~/ defensiveLinemen.length;
+  }
+
+  /// Legacy method for selecting offensive plays without player data.
+  PlayCall _selectOffensivePlayLegacy(
+    GameState gameState,
+    HeadCoach headCoach,
+    OffensiveCoordinator offensiveCoordinator,
   ) {
     // Determine base play type preference
     final passingPreference = offensiveCoordinator.passingOffense / 100.0;
@@ -169,6 +352,82 @@ class AICoach {
     } else {
       return _selectRunPlay(gameState, offensiveCoordinator);
     }
+  }
+
+  /// Legacy method for selecting defensive plays without player data.
+  PlayCall _selectDefensivePlayLegacy(
+    GameState gameState,
+    HeadCoach headCoach,
+    DefensiveCoordinator defensiveCoordinator,
+  ) {
+    final rushDefenseRating = defensiveCoordinator.rushingDefense;
+    final passDefenseRating = defensiveCoordinator.passingDefense;
+    final playCallingRating = defensiveCoordinator.defensivePlayCalling;
+    
+    // Situational factors
+    final isShortYardage = gameState.yardsToGo <= 3;
+    final isLongYardage = gameState.yardsToGo > 7;
+    final isRedZone = gameState.yardLine > 80;
+    final isGoalLine = gameState.yardLine > 95;
+    final isDesperationTime = _isDesperationSituation(gameState);
+
+    // Goal line defense - stack the box heavily
+    if (isGoalLine) {
+      return _random.nextDouble() < 0.8
+          ? PlayCall.defense(DefensivePlay.stackTheBox)
+          : PlayCall.defense(DefensivePlay.defendRun);
+    }
+
+    // Short yardage situations - expect run
+    if (isShortYardage && !isDesperationTime) {
+      final stackChance = 0.6 + (rushDefenseRating - 50) / 200.0;
+      if (_random.nextDouble() < stackChance) {
+        return PlayCall.defense(DefensivePlay.stackTheBox);
+      } else {
+        return PlayCall.defense(DefensivePlay.defendRun);
+      }
+    }
+
+    // Long yardage - expect pass
+    if (isLongYardage) {
+      final passDefenseChance = 0.7 + (passDefenseRating - 50) / 200.0;
+      if (_random.nextDouble() < passDefenseChance) {
+        return PlayCall.defense(DefensivePlay.defendPass);
+      } else {
+        // Sometimes blitz on long yardage
+        return _random.nextDouble() < 0.4
+            ? PlayCall.defense(DefensivePlay.blitz)
+            : PlayCall.defense(DefensivePlay.balanced);
+      }
+    }
+
+    // Desperation time defense
+    if (isDesperationTime) {
+      final scoreDifferential = gameState.defensiveTeamScore - gameState.possessionTeamScore;
+      
+      // If ahead, play prevent defense
+      if (scoreDifferential > 3) {
+        return PlayCall.defense(DefensivePlay.prevent);
+      }
+      
+      // If close or behind, pressure the QB
+      return _random.nextDouble() < 0.6
+          ? PlayCall.defense(DefensivePlay.blitz)
+          : PlayCall.defense(DefensivePlay.defendPass);
+    }
+
+    // Red zone defense
+    if (isRedZone) {
+      return _selectRedZoneDefense(gameState, defensiveCoordinator);
+    }
+
+    // Third down situations
+    if (gameState.down == 3) {
+      return _selectThirdDownDefense(gameState, defensiveCoordinator);
+    }
+
+    // Normal down and distance - use coordinator tendencies
+    return _selectStandardDefense(gameState, defensiveCoordinator);
   }
 
   /// Selects a specific passing play based on situation.
@@ -291,6 +550,7 @@ class AICoach {
     GameState gameState,
     HeadCoach headCoach,
     DefensiveCoordinator defensiveCoordinator,
+    Team team,
   ) {
     final rushDefenseRating = defensiveCoordinator.rushingDefense;
     final passDefenseRating = defensiveCoordinator.passingDefense;

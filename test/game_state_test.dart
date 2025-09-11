@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import '../lib/src/models/game_state.dart';
+import 'package:pocket_gm_engine/src/models/game_state.dart';
 
 void main() {
   group('GameState', () {
