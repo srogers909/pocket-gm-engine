@@ -9,11 +9,11 @@ export 'src/engine_base.dart';
 export 'src/models/play_call.dart';
 export 'src/models/play_result.dart';
 export 'src/models/game_state.dart';
+export 'src/models/simulation_breakdown.dart';
 
 // Services
 export 'src/services/ai_coach.dart';
 export 'src/services/play_simulator.dart';
-export 'src/services/play_simulator_enhanced.dart';
 export 'src/services/clock_manager.dart';
 export 'src/services/down_manager.dart';
 

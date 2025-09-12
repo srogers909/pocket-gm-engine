@@ -2,6 +2,7 @@ import 'dart:math';
 import '../models/game_state.dart';
 import '../models/play_result.dart';
 import '../models/play_call.dart';
+import '../models/simulation_breakdown.dart';
 import 'package:pocket_gm_generator/pocket_gm_generator.dart';
 
 /// Service responsible for simulating individual football plays.
@@ -14,47 +15,47 @@ class PlaySimulator {
   // Player selection helper methods
 
   /// Selects a quarterback from the team roster
-  String? _selectQuarterback(Team team) {
+  Player? _selectQuarterback(Team team) {
     final quarterbacks = team.getPlayersByPosition('QB');
     if (quarterbacks.isEmpty) return null;
 
     // Sort by overall rating and pick the best available
     quarterbacks.sort((a, b) => b.overallRating.compareTo(a.overallRating));
-    return quarterbacks.first.commonName;
+    return quarterbacks.first;
   }
 
   /// Selects a running back from the team roster
-  String? _selectRunningBack(Team team) {
+  Player? _selectRunningBack(Team team) {
     final runningBacks = team.getPlayersByPosition('RB');
     if (runningBacks.isEmpty) return null;
 
     // Sort by overall rating and pick the best available
     runningBacks.sort((a, b) => b.overallRating.compareTo(a.overallRating));
-    return runningBacks.first.commonName;
+    return runningBacks.first;
   }
 
   /// Selects a wide receiver from the team roster
-  String? _selectReceiver(Team team) {
+  Player? _selectReceiver(Team team) {
     final receivers = team.getPlayersByPosition('WR');
     if (receivers.isEmpty) return null;
 
     // Add some randomness to receiver selection (top 3 receivers)
     receivers.sort((a, b) => b.overallRating.compareTo(a.overallRating));
     final topReceivers = receivers.take(3).toList();
-    return topReceivers[_random.nextInt(topReceivers.length)].commonName;
+    return topReceivers[_random.nextInt(topReceivers.length)];
   }
 
   /// Selects a tight end from the team roster
-  String? _selectTightEnd(Team team) {
+  Player? _selectTightEnd(Team team) {
     final tightEnds = team.getPlayersByPosition('TE');
     if (tightEnds.isEmpty) return null;
 
     tightEnds.sort((a, b) => b.overallRating.compareTo(a.overallRating));
-    return tightEnds.first.commonName;
+    return tightEnds.first;
   }
 
   /// Selects a defensive player for tackles/coverage
-  String? _selectDefender(Team team, {String? preferredPosition}) {
+  Player? _selectDefender(Team team, {String? preferredPosition}) {
     List<Player> defenders;
 
     if (preferredPosition != null) {
@@ -75,16 +76,16 @@ class PlaySimulator {
     // Add some randomness to defensive player selection
     defenders.sort((a, b) => b.overallRating.compareTo(a.overallRating));
     final topDefenders = defenders.take(5).toList();
-    return topDefenders[_random.nextInt(topDefenders.length)].commonName;
+    return topDefenders[_random.nextInt(topDefenders.length)];
   }
 
   /// Selects additional players involved in the play
-  List<String> _selectInvolvedPlayers(
+  List<Player> _selectInvolvedPlayers(
     Team offensiveTeam,
     Team defensiveTeam, {
     int count = 2,
   }) {
-    final involved = <String>[];
+    final involved = <Player>[];
 
     // Add some offensive players
     final offensivePlayers = [
@@ -104,39 +105,39 @@ class PlaySimulator {
     // Randomly select involved players
     final shuffled = List.from(allPlayers)..shuffle(_random);
     for (int i = 0; i < count && i < shuffled.length; i++) {
-      involved.add(shuffled[i].commonName);
+      involved.add(shuffled[i] as Player);
     }
 
     return involved;
   }
 
   /// Selects a kicker from the team roster
-  String? _selectKicker(Team team) {
+  Player? _selectKicker(Team team) {
     final kickers = team.getPlayersByPosition('K');
     if (kickers.isEmpty) return null;
 
     // Sort by overall rating and pick the best available
     kickers.sort((a, b) => b.overallRating.compareTo(a.overallRating));
-    return kickers.first.commonName;
+    return kickers.first;
   }
 
   /// Selects a punter from the team roster
-  String? _selectPunter(Team team) {
+  Player? _selectPunter(Team team) {
     final punters = team.getPlayersByPosition('P');
     if (punters.isEmpty) return null;
 
     // Sort by overall rating and pick the best available
     punters.sort((a, b) => b.overallRating.compareTo(a.overallRating));
-    return punters.first.commonName;
+    return punters.first;
   }
 
   /// Selects special teams players for coverage/blocking
-  List<String> _selectSpecialTeamsPlayers(
+  List<Player> _selectSpecialTeamsPlayers(
     Team offensiveTeam,
     Team defensiveTeam, {
     int count = 3,
   }) {
-    final involved = <String>[];
+    final involved = <Player>[];
 
     // Add some special teams players (mix of positions)
     final specialTeamsPlayers = [
@@ -153,7 +154,7 @@ class PlaySimulator {
     // Randomly select special teams players
     final shuffled = List.from(specialTeamsPlayers)..shuffle(_random);
     for (int i = 0; i < count && i < shuffled.length; i++) {
-      involved.add(shuffled[i].commonName);
+      involved.add(shuffled[i] as Player);
     }
 
     return involved;
@@ -249,32 +250,139 @@ class PlaySimulator {
   /// The defensive play call modifies the outcome of the offensive play,
   /// creating realistic interactions between offensive and defensive strategies.
   /// This is the primary method for simulating plays in a full game context.
-  PlayResult simulatePlayWithDefense(
+  /// 
+  /// Returns a tuple containing the PlayResult and SimulationBreakdown for transparency.
+  (PlayResult, SimulationBreakdown) simulatePlayWithDefense(
     GameState gameState,
     PlayCall offensivePlay,
     PlayCall defensivePlay,
     Team offensiveTeam,
     Team defensiveTeam,
+    SimulationBreakdown breakdown,
   ) {
+    breakdown.addSection('PLAY SIMULATION BREAKDOWN');
+    breakdown.addLog('Starting play simulation...');
+    breakdown.addLog('Offensive Team: ${offensiveTeam.name}');
+    breakdown.addLog('Defensive Team: ${defensiveTeam.name}');
+    breakdown.addLog('Field Position: ${gameState.yardLine} yard line');
+    breakdown.addLog('Down & Distance: ${gameState.down} & ${gameState.yardsToGo}');
+    breakdown.addLog('Quarter: ${gameState.quarter}');
+    
+    if (offensivePlay.isRun) {
+      breakdown.addLog('Offensive Play: ${offensivePlay.runPlay}');
+    } else if (offensivePlay.isPass) {
+      breakdown.addLog('Offensive Play: ${offensivePlay.passPlay}');
+    } else if (offensivePlay.isSpecialTeams) {
+      breakdown.addLog('Offensive Play: ${offensivePlay.specialTeamsPlay}');
+    }
+    
+    if (defensivePlay.isDefense) {
+      breakdown.addLog('Defensive Play: ${defensivePlay.defensivePlay}');
+    }
+
     // First simulate the base offensive play
-    PlayResult baseResult = simulatePlay(
+    breakdown.addSection('BASE PLAY SIMULATION');
+    PlayResult baseResult = _simulatePlayWithBreakdown(
       gameState,
       offensivePlay,
       offensiveTeam,
       defensiveTeam,
+      breakdown,
     );
+    
+    breakdown.addLog('Base Result: ${baseResult.yardsGained} yards, ${baseResult.timeElapsed.inSeconds}s');
+    if (baseResult.isTurnover) breakdown.addLog('Turnover occurred in base simulation');
+    if (baseResult.isScore) breakdown.addLog('Score occurred in base simulation');
+    if (baseResult.isFirstDown) breakdown.addLog('First down achieved in base simulation');
 
     // Then apply defensive modifications
+    PlayResult finalResult = baseResult;
     if (defensivePlay.isDefense) {
-      return _applyDefensiveModifications(
+      breakdown.addSection('DEFENSIVE MODIFICATIONS');
+      finalResult = _applyDefensiveModificationsWithBreakdown(
         baseResult,
         offensivePlay,
         defensivePlay.defensivePlay!,
+        breakdown,
       );
+      
+      breakdown.addLog('Final Result: ${finalResult.yardsGained} yards, ${finalResult.timeElapsed.inSeconds}s');
+      if (finalResult.yardsGained != baseResult.yardsGained) {
+        breakdown.addLog('Defensive play changed yards from ${baseResult.yardsGained} to ${finalResult.yardsGained}');
+      }
+      if (finalResult.isTurnover != baseResult.isTurnover) {
+        breakdown.addLog('Defensive play ${finalResult.isTurnover ? 'caused' : 'prevented'} a turnover');
+      }
+    } else {
+      breakdown.addLog('No defensive modifications applied');
     }
 
-    // If no defensive play provided, return base result
-    return baseResult;
+    breakdown.addSection('FINAL PLAY SUMMARY');
+    breakdown.addLog('Play Type: ${finalResult.playType}');
+    breakdown.addLog('Yards Gained: ${finalResult.yardsGained}');
+    breakdown.addLog('Time Elapsed: ${finalResult.timeElapsed.inSeconds} seconds');
+    breakdown.addLog('Turnover: ${finalResult.isTurnover}');
+    breakdown.addLog('Score: ${finalResult.isScore}');
+    breakdown.addLog('First Down: ${finalResult.isFirstDown}');
+    breakdown.addLog('Clock Stopped: ${finalResult.stopClock}');
+
+    return (finalResult, breakdown);
+  }
+
+  /// Simulates a play with breakdown logging.
+  ///
+  /// This is a wrapper around the existing simulatePlay method that adds
+  /// detailed logging to the breakdown for transparency.
+  PlayResult _simulatePlayWithBreakdown(
+    GameState gameState,
+    PlayCall playCall,
+    Team offensiveTeam,
+    Team defensiveTeam,
+    SimulationBreakdown breakdown,
+  ) {
+    breakdown.addLog('Simulating ${playCall.isRun ? "run" : playCall.isPass ? "pass" : "special teams"} play...');
+    
+    // Call the existing simulatePlay method
+    PlayResult result = simulatePlay(
+      gameState,
+      playCall,
+      offensiveTeam,
+      defensiveTeam,
+    );
+    
+    breakdown.addLog('Play simulation complete: ${result.yardsGained} yards');
+    
+    return result;
+  }
+
+  /// Applies defensive modifications with breakdown logging.
+  ///
+  /// This is a wrapper around the existing _applyDefensiveModifications method
+  /// that adds detailed logging to the breakdown for transparency.
+  PlayResult _applyDefensiveModificationsWithBreakdown(
+    PlayResult baseResult,
+    PlayCall offensivePlay,
+    DefensivePlay defensivePlay,
+    SimulationBreakdown breakdown,
+  ) {
+    breakdown.addLog('Applying defensive modifications for ${defensivePlay}...');
+    
+    // Call the existing _applyDefensiveModifications method
+    PlayResult result = _applyDefensiveModifications(
+      baseResult,
+      offensivePlay,
+      defensivePlay,
+    );
+    
+    breakdown.addLog('Defensive modifications applied');
+    if (result.yardsGained != baseResult.yardsGained) {
+      breakdown.addLog('Yards changed from ${baseResult.yardsGained} to ${result.yardsGained}');
+    }
+    if (result.isTurnover != baseResult.isTurnover) {
+      breakdown.addLog('Turnover status changed: ${result.isTurnover}');
+    }
+    
+    return result;
   }
 
   /// Generates realistic yards gained for a running play using player attributes.
@@ -624,9 +732,9 @@ class PlaySimulator {
     final stopClock = isScore || isTurnover;
 
     // Select players based on run play type
-    String? primaryPlayer;
-    String? defender;
-    List<String> involvedPlayers;
+    Player? primaryPlayer;
+    Player? defender;
+    List<Player> involvedPlayers;
 
     switch (runPlay) {
       case OffensiveRunPlay.qbRun:
@@ -641,6 +749,18 @@ class PlaySimulator {
         involvedPlayers = _selectInvolvedPlayers(offensiveTeam, defensiveTeam);
         break;
     }
+
+      // Use touchdown factory method if this is a scoring play
+      if (isScore) {
+        return PlayResult.touchdown(
+          playType: PlayType.rush,
+          yardsGained: yardsGained,
+          timeElapsed: timeElapsed,
+          primaryPlayer: primaryPlayer,
+          defender: defender,
+          involvedPlayers: involvedPlayers,
+        );
+      }
 
     return PlayResult(
       playType: PlayType.rush,
@@ -724,10 +844,10 @@ class PlaySimulator {
     final isFirstDown = !isScore && yardsGained >= gameState.yardsToGo;
 
     // Select players based on pass play type
-    String? primaryPlayer;
-    String? targetPlayer;
-    String? defender;
-    List<String> involvedPlayers;
+    Player? primaryPlayer;
+    Player? targetPlayer;
+    Player? defender;
+    List<Player> involvedPlayers;
 
     switch (passPlay) {
       case OffensivePassPlay.hailMary:
@@ -751,6 +871,19 @@ class PlaySimulator {
         defender = _selectDefender(defensiveTeam, preferredPosition: 'LB');
         involvedPlayers = _selectInvolvedPlayers(offensiveTeam, defensiveTeam);
         break;
+    }
+
+    // Use touchdown factory method if this is a scoring play
+    if (isScore) {
+      return PlayResult.touchdown(
+        playType: PlayType.pass,
+        yardsGained: yardsGained,
+        timeElapsed: timeElapsed,
+        primaryPlayer: primaryPlayer,
+        targetPlayer: targetPlayer,
+        defender: defender,
+        involvedPlayers: involvedPlayers,
+      );
     }
 
     return PlayResult(
@@ -2145,16 +2278,11 @@ class PlaySimulator {
       defensiveTeam,
     );
 
-    return PlayResult(
-      playType: PlayType.fieldGoal,
+    return PlayResult.fieldGoal(
       yardsGained: 0,
       timeElapsed: Duration(seconds: 5),
-      isTurnover: false,
-      isScore: isGood,
-      isFirstDown: false,
-      stopClock: true,
+      isGood: isGood,
       primaryPlayer: kicker,
-      defender: defender,
       involvedPlayers: involvedPlayers,
     );
   }
@@ -2884,7 +3012,12 @@ class PlaySimulator {
       if (stackSuccess) {
         // Excellent run defense with stacked box
         final reduction = (baseYards * 0.5).round() + _random.nextInt(3);
-        return (baseYards - reduction).clamp(-5, baseYards);
+        final adjustedYards = baseYards - reduction;
+        
+        // Fix: Ensure clamp bounds are properly ordered (lower <= upper)
+        final minYards = -15; // Reasonable minimum loss
+        final maxYards = baseYards > 0 ? baseYards : 0; // Don't improve negative plays
+        return adjustedYards.clamp(minYards, maxYards);
       }
     } else if (offensivePlay.isPass) {
       // Vulnerable to pass plays with fewer defenders in coverage

@@ -1,3 +1,5 @@
+import 'package:pocket_gm_generator/src/models/player.dart';
+
 /// Represents the outcome of a single football play.
 /// 
 /// This class captures all the information needed to update the game state
@@ -19,6 +21,9 @@ class PlayResult {
   /// Whether the play resulted in a score (touchdown or safety)
   final bool isScore;
   
+  /// The number of points scored on this play (0 if no score)
+  final int pointsScored;
+  
   /// Whether the play resulted in a first down
   final bool isFirstDown;
   
@@ -29,16 +34,16 @@ class PlayResult {
   final String? description;
   
   /// The player who executed the play (rusher, passer, kicker, etc.)
-  final String? primaryPlayer;
+  final Player? primaryPlayer;
   
   /// The target player for passes (receiver) or null for other plays
-  final String? targetPlayer;
+  final Player? targetPlayer;
   
   /// The defending player who made the tackle/caused turnover (if any)
-  final String? defender;
+  final Player? defender;
   
   /// Additional players involved in the play (blockers, coverage, etc.)
-  final List<String> involvedPlayers;
+  final List<Player> involvedPlayers;
   
   const PlayResult({
     required this.playType,
@@ -46,6 +51,7 @@ class PlayResult {
     required this.timeElapsed,
     this.isTurnover = false,
     this.isScore = false,
+    this.pointsScored = 0,
     this.isFirstDown = false,
     this.stopClock = false,
     this.description,
@@ -61,9 +67,9 @@ class PlayResult {
     Duration? timeElapsed,
     bool isFirstDown = false,
     String? description,
-    String? primaryPlayer,
-    String? defender,
-    List<String> involvedPlayers = const [],
+    Player? primaryPlayer,
+    Player? defender,
+    List<Player> involvedPlayers = const [],
   }) {
     return PlayResult(
       playType: PlayType.rush,
@@ -85,10 +91,10 @@ class PlayResult {
     bool isFirstDown = false,
     bool isComplete = true,
     String? description,
-    String? primaryPlayer,
-    String? targetPlayer,
-    String? defender,
-    List<String> involvedPlayers = const [],
+    Player? primaryPlayer,
+    Player? targetPlayer,
+    Player? defender,
+    List<Player> involvedPlayers = const [],
   }) {
     return PlayResult(
       playType: PlayType.pass,
@@ -110,10 +116,10 @@ class PlayResult {
     required int yardsGained,
     Duration? timeElapsed,
     String? description,
-    String? primaryPlayer,
-    String? targetPlayer,
-    String? defender,
-    List<String> involvedPlayers = const [],
+    Player? primaryPlayer,
+    Player? targetPlayer,
+    Player? defender,
+    List<Player> involvedPlayers = const [],
   }) {
     return PlayResult(
       playType: playType,
@@ -135,20 +141,88 @@ class PlayResult {
     required int yardsGained,
     Duration? timeElapsed,
     String? description,
-    String? primaryPlayer,
-    String? targetPlayer,
-    String? defender,
-    List<String> involvedPlayers = const [],
+    Player? primaryPlayer,
+    Player? targetPlayer,
+    Player? defender,
+    List<Player> involvedPlayers = const [],
   }) {
     return PlayResult(
       playType: playType,
       yardsGained: yardsGained,
       timeElapsed: timeElapsed ?? const Duration(seconds: 10),
       isScore: true,
+      pointsScored: 6, // Touchdowns are worth 6 points
       stopClock: true, // Scores stop the clock
       description: description,
       primaryPlayer: primaryPlayer,
       targetPlayer: targetPlayer,
+      defender: defender,
+      involvedPlayers: involvedPlayers,
+    );
+  }
+  
+  /// Creates a field goal result
+  factory PlayResult.fieldGoal({
+    required int yardsGained,
+    Duration? timeElapsed,
+    bool isGood = true,
+    String? description,
+    Player? primaryPlayer,
+    List<Player> involvedPlayers = const [],
+  }) {
+    return PlayResult(
+      playType: PlayType.fieldGoal,
+      yardsGained: yardsGained,
+      timeElapsed: timeElapsed ?? const Duration(seconds: 5),
+      isScore: isGood,
+      pointsScored: isGood ? 3 : 0, // Field goals are worth 3 points if successful
+      stopClock: true, // Field goal attempts stop the clock
+      description: description,
+      primaryPlayer: primaryPlayer,
+      involvedPlayers: involvedPlayers,
+    );
+  }
+  
+  /// Creates an extra point result
+  factory PlayResult.extraPoint({
+    required int yardsGained,
+    Duration? timeElapsed,
+    bool isGood = true,
+    String? description,
+    Player? primaryPlayer,
+    List<Player> involvedPlayers = const [],
+  }) {
+    return PlayResult(
+      playType: PlayType.extraPoint,
+      yardsGained: yardsGained,
+      timeElapsed: timeElapsed ?? const Duration(seconds: 5),
+      isScore: isGood,
+      pointsScored: isGood ? 1 : 0, // Extra points are worth 1 point if successful
+      stopClock: true, // Extra point attempts stop the clock
+      description: description,
+      primaryPlayer: primaryPlayer,
+      involvedPlayers: involvedPlayers,
+    );
+  }
+  
+  /// Creates a safety result
+  factory PlayResult.safety({
+    required int yardsGained,
+    Duration? timeElapsed,
+    String? description,
+    Player? primaryPlayer,
+    Player? defender,
+    List<Player> involvedPlayers = const [],
+  }) {
+    return PlayResult(
+      playType: PlayType.rush, // Safeties can occur on various play types
+      yardsGained: yardsGained,
+      timeElapsed: timeElapsed ?? const Duration(seconds: 8),
+      isScore: true,
+      pointsScored: 2, // Safeties are worth 2 points
+      stopClock: true, // Safeties stop the clock
+      description: description,
+      primaryPlayer: primaryPlayer,
       defender: defender,
       involvedPlayers: involvedPlayers,
     );
@@ -161,13 +235,49 @@ class PlayResult {
     final flags = <String>[];
     
     if (isTurnover) flags.add('TURNOVER');
-    if (isScore) flags.add('SCORE');
+    if (isScore) flags.add('SCORE ($pointsScored pts)');
     if (isFirstDown) flags.add('1ST DOWN');
     if (stopClock) flags.add('CLOCK STOPS');
     
     final flagsStr = flags.isNotEmpty ? ' [${flags.join(', ')}]' : '';
     
-    return 'PlayResult(${playType.name.toUpperCase()}: $yards yards, $time$flagsStr)';
+    // Build detailed player information
+    final playerDetails = <String>[];
+    if (primaryPlayer != null) {
+      playerDetails.add('${_getPlayerRoleForPlayType(playType)}: ${primaryPlayer!.commonName}');
+    }
+    if (targetPlayer != null) {
+      playerDetails.add('Target: ${targetPlayer!.commonName}');
+    }
+    if (defender != null) {
+      playerDetails.add('Defender: ${defender!.commonName}');
+    }
+    
+    final playerStr = playerDetails.isNotEmpty ? ' | ${playerDetails.join(', ')}' : '';
+    
+    return 'PlayResult(${playType.name.toUpperCase()}: $yards yards, $time$flagsStr$playerStr)';
+  }
+  
+  /// Helper method to get the appropriate role label for the primary player based on play type
+  String _getPlayerRoleForPlayType(PlayType type) {
+    switch (type) {
+      case PlayType.rush:
+        return 'Rusher';
+      case PlayType.pass:
+        return 'Passer';
+      case PlayType.punt:
+        return 'Punter';
+      case PlayType.fieldGoal:
+      case PlayType.extraPoint:
+        return 'Kicker';
+      case PlayType.kickoff:
+        return 'Kicker';
+      case PlayType.kneel:
+      case PlayType.spike:
+        return 'QB';
+      default:
+        return 'Player';
+    }
   }
   
   @override
