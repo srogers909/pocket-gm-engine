@@ -13,6 +13,7 @@ export 'src/models/game_state.dart';
 // Services
 export 'src/services/ai_coach.dart';
 export 'src/services/play_simulator.dart';
+export 'src/services/play_simulator_enhanced.dart';
 export 'src/services/clock_manager.dart';
 export 'src/services/down_manager.dart';
 

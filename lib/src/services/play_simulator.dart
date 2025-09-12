@@ -1802,7 +1802,8 @@ class PlaySimulator {
 
       // Calculate offensive advantage (QB + WR + OL vs LB coverage) - OL very important for screens
       double offensiveAdvantage =
-          (qbAccuracy + wrCatching + (offensiveLineRating * 1.2)) / 3.2; // Weighted average
+          (qbAccuracy + wrCatching + (offensiveLineRating * 1.2)) /
+          3.2; // Weighted average
       double netAdvantage = offensiveAdvantage - lbCoverage + coachingBonus;
 
       // Normalize advantage relative to average (50): range roughly -50 to +50
@@ -1813,26 +1814,61 @@ class PlaySimulator {
       // Adjust probability thresholds based on advantage
       if (advantageModifier > 0) {
         // Positive advantage: reduce losses, increase big plays
-        lossThreshold = (lossThreshold - (advantageModifier / 2)).round().clamp(5, 25);
-        shortThreshold = (shortThreshold - (advantageModifier / 3)).round().clamp(15, 40);
-        longThreshold = (longThreshold - (advantageModifier / 3)).round().clamp(70, 90);
+        lossThreshold = (lossThreshold - (advantageModifier / 2)).round().clamp(
+          5,
+          25,
+        );
+        shortThreshold = (shortThreshold - (advantageModifier / 3))
+            .round()
+            .clamp(15, 40);
+        longThreshold = (longThreshold - (advantageModifier / 3)).round().clamp(
+          70,
+          90,
+        );
 
         // Increase yard potential (especially big plays for screens)
-        baseMediumYards = (baseMediumYards + (advantageModifier / 4)).round().clamp(8, 12);
-        baseLongYards = (baseLongYards + (advantageModifier / 3)).round().clamp(13, 18);
-        baseBigPlayYards = (baseBigPlayYards + (advantageModifier / 2)).round().clamp(35, 50);
+        baseMediumYards = (baseMediumYards + (advantageModifier / 4))
+            .round()
+            .clamp(8, 12);
+        baseLongYards = (baseLongYards + (advantageModifier / 3)).round().clamp(
+          13,
+          18,
+        );
+        baseBigPlayYards = (baseBigPlayYards + (advantageModifier / 2))
+            .round()
+            .clamp(35, 50);
       } else if (advantageModifier < 0) {
         // Negative advantage: increase losses, reduce big plays
         double absAdvantage = -advantageModifier;
-        lossThreshold = (lossThreshold + (absAdvantage / 2)).round().clamp(5, 35);
-        shortThreshold = (shortThreshold + (absAdvantage / 3)).round().clamp(20, 50);
-        longThreshold = (longThreshold + (absAdvantage / 3)).round().clamp(75, 95);
+        lossThreshold = (lossThreshold + (absAdvantage / 2)).round().clamp(
+          5,
+          35,
+        );
+        shortThreshold = (shortThreshold + (absAdvantage / 3)).round().clamp(
+          20,
+          50,
+        );
+        longThreshold = (longThreshold + (absAdvantage / 3)).round().clamp(
+          75,
+          95,
+        );
 
         // Decrease yard potential
-        baseLossYards = (baseLossYards + (absAdvantage / 5)).round().clamp(4, 8);
-        baseMediumYards = (baseMediumYards - (absAdvantage / 4)).round().clamp(5, 8);
-        baseLongYards = (baseLongYards - (absAdvantage / 3)).round().clamp(8, 13);
-        baseBigPlayYards = (baseBigPlayYards - (absAdvantage / 2)).round().clamp(20, 35);
+        baseLossYards = (baseLossYards + (absAdvantage / 5)).round().clamp(
+          4,
+          8,
+        );
+        baseMediumYards = (baseMediumYards - (absAdvantage / 4)).round().clamp(
+          5,
+          8,
+        );
+        baseLongYards = (baseLongYards - (absAdvantage / 3)).round().clamp(
+          8,
+          13,
+        );
+        baseBigPlayYards = (baseBigPlayYards - (absAdvantage / 2))
+            .round()
+            .clamp(20, 35);
       }
     }
 
@@ -1840,19 +1876,25 @@ class PlaySimulator {
 
     if (roll < lossThreshold) {
       // Loss if defense reads it
-      return -2 - _random.nextInt(baseLossYards); // -2 to -(2 + baseLossYards) yards
+      return -2 -
+          _random.nextInt(baseLossYards); // -2 to -(2 + baseLossYards) yards
     } else if (roll < shortThreshold) {
       // Short gain
       return _random.nextInt(baseShortYards); // 0 to baseShortYards yards
     } else if (roll < mediumThreshold) {
       // Medium gain
-      return 4 + _random.nextInt(baseMediumYards); // 4 to (4 + baseMediumYards) yards
+      return 4 +
+          _random.nextInt(baseMediumYards); // 4 to (4 + baseMediumYards) yards
     } else if (roll < longThreshold) {
       // Long gain
-      return 12 + _random.nextInt(baseLongYards); // 12 to (12 + baseLongYards) yards
+      return 12 +
+          _random.nextInt(baseLongYards); // 12 to (12 + baseLongYards) yards
     } else {
       // Big play
-      return 25 + _random.nextInt(baseBigPlayYards); // 25 to (25 + baseBigPlayYards) yards
+      return 25 +
+          _random.nextInt(
+            baseBigPlayYards,
+          ); // 25 to (25 + baseBigPlayYards) yards
     }
   }
 
@@ -1913,7 +1955,8 @@ class PlaySimulator {
 
       // Calculate offensive advantage (QB + RB + OL vs LB coverage) - OL very important for screens
       double offensiveAdvantage =
-          (qbAccuracy + rbCatching + (offensiveLineRating * 1.3)) / 3.3; // Weighted average
+          (qbAccuracy + rbCatching + (offensiveLineRating * 1.3)) /
+          3.3; // Weighted average
       double netAdvantage = offensiveAdvantage - lbCoverage + coachingBonus;
 
       // Normalize advantage relative to average (50): range roughly -50 to +50
@@ -1924,26 +1967,61 @@ class PlaySimulator {
       // Adjust probability thresholds based on advantage
       if (advantageModifier > 0) {
         // Positive advantage: reduce losses, increase big plays
-        lossThreshold = (lossThreshold - (advantageModifier / 2)).round().clamp(3, 18);
-        shortThreshold = (shortThreshold - (advantageModifier / 3)).round().clamp(12, 35);
-        longThreshold = (longThreshold - (advantageModifier / 3)).round().clamp(75, 95);
+        lossThreshold = (lossThreshold - (advantageModifier / 2)).round().clamp(
+          3,
+          18,
+        );
+        shortThreshold = (shortThreshold - (advantageModifier / 3))
+            .round()
+            .clamp(12, 35);
+        longThreshold = (longThreshold - (advantageModifier / 3)).round().clamp(
+          75,
+          95,
+        );
 
         // Increase yard potential (especially big plays for screens)
-        baseMediumYards = (baseMediumYards + (advantageModifier / 5)).round().clamp(8, 12);
-        baseLongYards = (baseLongYards + (advantageModifier / 4)).round().clamp(12, 17);
-        baseBigPlayYards = (baseBigPlayYards + (advantageModifier / 3)).round().clamp(30, 45);
+        baseMediumYards = (baseMediumYards + (advantageModifier / 5))
+            .round()
+            .clamp(8, 12);
+        baseLongYards = (baseLongYards + (advantageModifier / 4)).round().clamp(
+          12,
+          17,
+        );
+        baseBigPlayYards = (baseBigPlayYards + (advantageModifier / 3))
+            .round()
+            .clamp(30, 45);
       } else if (advantageModifier < 0) {
         // Negative advantage: increase losses, reduce big plays
         double absAdvantage = -advantageModifier;
-        lossThreshold = (lossThreshold + (absAdvantage / 2)).round().clamp(3, 25);
-        shortThreshold = (shortThreshold + (absAdvantage / 3)).round().clamp(15, 45);
-        longThreshold = (longThreshold + (absAdvantage / 3)).round().clamp(80, 98);
+        lossThreshold = (lossThreshold + (absAdvantage / 2)).round().clamp(
+          3,
+          25,
+        );
+        shortThreshold = (shortThreshold + (absAdvantage / 3)).round().clamp(
+          15,
+          45,
+        );
+        longThreshold = (longThreshold + (absAdvantage / 3)).round().clamp(
+          80,
+          98,
+        );
 
         // Decrease yard potential
-        baseLossYards = (baseLossYards + (absAdvantage / 6)).round().clamp(3, 6);
-        baseMediumYards = (baseMediumYards - (absAdvantage / 5)).round().clamp(5, 8);
-        baseLongYards = (baseLongYards - (absAdvantage / 4)).round().clamp(8, 12);
-        baseBigPlayYards = (baseBigPlayYards - (absAdvantage / 3)).round().clamp(18, 30);
+        baseLossYards = (baseLossYards + (absAdvantage / 6)).round().clamp(
+          3,
+          6,
+        );
+        baseMediumYards = (baseMediumYards - (absAdvantage / 5)).round().clamp(
+          5,
+          8,
+        );
+        baseLongYards = (baseLongYards - (absAdvantage / 4)).round().clamp(
+          8,
+          12,
+        );
+        baseBigPlayYards = (baseBigPlayYards - (absAdvantage / 3))
+            .round()
+            .clamp(18, 30);
       }
     }
 
@@ -1951,19 +2029,25 @@ class PlaySimulator {
 
     if (roll < lossThreshold) {
       // Loss
-      return -1 - _random.nextInt(baseLossYards); // -1 to -(1 + baseLossYards) yards
+      return -1 -
+          _random.nextInt(baseLossYards); // -1 to -(1 + baseLossYards) yards
     } else if (roll < shortThreshold) {
       // Short gain
       return _random.nextInt(baseShortYards); // 0 to baseShortYards yards
     } else if (roll < mediumThreshold) {
       // Medium gain
-      return 5 + _random.nextInt(baseMediumYards); // 5 to (5 + baseMediumYards) yards
+      return 5 +
+          _random.nextInt(baseMediumYards); // 5 to (5 + baseMediumYards) yards
     } else if (roll < longThreshold) {
       // Long gain
-      return 13 + _random.nextInt(baseLongYards); // 13 to (13 + baseLongYards) yards
+      return 13 +
+          _random.nextInt(baseLongYards); // 13 to (13 + baseLongYards) yards
     } else {
       // Big play
-      return 25 + _random.nextInt(baseBigPlayYards); // 25 to (25 + baseBigPlayYards) yards
+      return 25 +
+          _random.nextInt(
+            baseBigPlayYards,
+          ); // 25 to (25 + baseBigPlayYards) yards
     }
   }
 
@@ -2006,9 +2090,13 @@ class PlaySimulator {
       // Use offensive coordinator for general coaching bonus (no special teams coordinator available)
       double coachingBonus = 0.0;
       if (playCall.coaching?.offensiveCoordinator != null) {
-        final coach = playCall.coaching!.offensiveCoordinator as OffensiveCoordinator;
+        final coach =
+            playCall.coaching!.offensiveCoordinator as OffensiveCoordinator;
         // Use a smaller bonus since this isn't specialized special teams coaching
-        coachingBonus = (coach.passingOffense / 50.0).clamp(0.0, 2.0); // Scale 0-100 to 0-2
+        coachingBonus = (coach.passingOffense / 50.0).clamp(
+          0.0,
+          2.0,
+        ); // Scale 0-100 to 0-2
       }
 
       // Calculate kicker advantage relative to league average (50)
@@ -2017,7 +2105,7 @@ class PlaySimulator {
       // Apply kicker modifier to success rate
       // Scale advantage to reasonable modifier (-20 to +20 percentage points)
       double successModifier = (kickerAdvantage / 2.5).clamp(-20.0, 20.0);
-      
+
       // Apply distance penalty scaling - longer kicks are more affected by kicker skill
       double distanceScaling = 1.0;
       if (kickDistance > 50) {
@@ -2025,11 +2113,14 @@ class PlaySimulator {
       } else if (kickDistance > 40) {
         distanceScaling = 1.2; // 20% more impact for medium-long kicks
       }
-      
+
       successModifier *= distanceScaling;
-      
+
       // Apply modifier to base success rate
-      int finalSuccessRate = (baseSuccessRate + successModifier).round().clamp(5, 99);
+      int finalSuccessRate = (baseSuccessRate + successModifier).round().clamp(
+        5,
+        99,
+      );
       baseSuccessRate = finalSuccessRate;
     }
 
@@ -2068,7 +2159,7 @@ class PlaySimulator {
     );
   }
 
-  /// Punt simulation - now uses punter attributes for realistic outcomes
+  /// Punt simulation - now uses punter attributes for realistic outcomes including pressure resistance
   PlayResult _simulatePunt(
     GameState gameState,
     Team offensiveTeam,
@@ -2080,7 +2171,7 @@ class PlaySimulator {
     // Base punt distance ranges by field position (can be modified by punter attributes)
     int basePuntYards;
     int puntVariance;
-    
+
     if (distanceToGoal > 60) {
       basePuntYards = 50; // Base 50-yard punt
       puntVariance = 21; // ±10 yards (40-60 yards)
@@ -2092,23 +2183,47 @@ class PlaySimulator {
       puntVariance = 16; // ±8 yards (25-40 yards)
     }
 
+    // Base blocked punt chance (will be modified by pressure resistance)
+    double baseBlockChance = 0.5; // Base 0.5% chance
+    bool isPressureSituation = false;
+    double pressureIntensity = 50.0; // Default medium pressure
+
     // Apply punter attribute modifiers if available
     if (playCall?.players != null) {
       final players = playCall!.players!;
 
       // Get punter power/accuracy rating (positionRating1 for P = Power/Distance)
       double punterPower = 50.0; // Default average rating
+      double punterPressureResistance =
+          50.0; // Default average pressure resistance
+
       if (players.primarySkillPlayer != null) {
         final punter = players.primarySkillPlayer as Player;
-        punterPower = punter.positionRating1.toDouble(); // Power/Distance rating
+        punterPower = punter.positionRating1
+            .toDouble(); // Power/Distance rating
+        punterPressureResistance = punter.pressureResistance
+            .toDouble(); // Pressure resistance rating
       }
+
+      // Determine pressure situation based on game context
+      isPressureSituation = _isPressureSituation(gameState);
+
+      // Calculate pressure intensity based on defensive rush and situation
+      pressureIntensity = _calculateDefensivePressure(
+        players,
+        isPressureSituation,
+      );
 
       // Use offensive coordinator for general coaching bonus (no special teams coordinator available)
       double coachingBonus = 0.0;
       if (playCall.coaching?.offensiveCoordinator != null) {
-        final coach = playCall.coaching!.offensiveCoordinator as OffensiveCoordinator;
+        final coach =
+            playCall.coaching!.offensiveCoordinator as OffensiveCoordinator;
         // Use a smaller bonus since this isn't specialized special teams coaching
-        coachingBonus = (coach.passingOffense / 50.0).clamp(0.0, 2.0); // Scale 0-100 to 0-2
+        coachingBonus = (coach.passingOffense / 50.0).clamp(
+          0.0,
+          2.0,
+        ); // Scale 0-100 to 0-2
       }
 
       // Calculate punter advantage relative to league average (50)
@@ -2117,27 +2232,87 @@ class PlaySimulator {
       // Apply punter modifier to punt distance
       // Scale advantage to reasonable modifier (-10 to +10 yards)
       double distanceModifier = (punterAdvantage / 5.0).clamp(-10.0, 10.0);
-      
+
       // Apply modifier to base punt distance
       basePuntYards = (basePuntYards + distanceModifier).round().clamp(20, 70);
-      
+
       // Better punters have more consistent punts (less variance)
       if (punterAdvantage > 0) {
         puntVariance = (puntVariance * 0.8).round(); // Reduce variance by 20%
       } else if (punterAdvantage < 0) {
         puntVariance = (puntVariance * 1.2).round(); // Increase variance by 20%
       }
+
+      // PRESSURE RESISTANCE EFFECTS: Modify punt outcomes based on pressure resistance
+      if (isPressureSituation) {
+        // Calculate pressure resistance effectiveness
+        double resistanceAdvantage =
+            punterPressureResistance - pressureIntensity;
+        double resistanceModifier = (resistanceAdvantage / 50.0).clamp(
+          -1.0,
+          1.0,
+        ); // Scale -1.0 to +1.0
+
+        if (resistanceModifier < 0) {
+          // Poor pressure resistance under pressure leads to:
+          // 1. Increased blocked punt chance
+          double blockIncrease =
+              (-resistanceModifier) * 2.0; // Up to 2x increase in block chance
+          baseBlockChance *= (1.0 + blockIncrease);
+
+          // 2. Reduced punt distance (hurried punt)
+          double distanceReduction =
+              (-resistanceModifier) * 8.0; // Up to 8 yards reduction
+          basePuntYards = (basePuntYards - distanceReduction).round().clamp(
+            15,
+            basePuntYards,
+          );
+
+          // 3. Increased variance (less consistent)
+          double varianceIncrease =
+              (-resistanceModifier) * 0.3; // Up to 30% more variance
+          puntVariance = (puntVariance * (1.0 + varianceIncrease)).round();
+        } else if (resistanceModifier > 0) {
+          // Good pressure resistance under pressure leads to:
+          // 1. Decreased blocked punt chance
+          double blockDecrease =
+              resistanceModifier * 0.5; // Up to 50% reduction in block chance
+          baseBlockChance *= (1.0 - blockDecrease);
+
+          // 2. Maintained or slightly improved punt distance (stays calm)
+          double distanceBonus =
+              resistanceModifier * 2.0; // Up to 2 yards bonus
+          basePuntYards = (basePuntYards + distanceBonus).round().clamp(
+            basePuntYards,
+            75,
+          );
+
+          // 3. Reduced variance (more consistent under pressure)
+          double varianceDecrease =
+              resistanceModifier * 0.2; // Up to 20% less variance
+          puntVariance = (puntVariance * (1.0 - varianceDecrease))
+              .round()
+              .clamp(5, puntVariance);
+        }
+      }
     }
 
     // Calculate final punt distance with variance
-    int puntYards = basePuntYards - (puntVariance ~/ 2) + _random.nextInt(puntVariance);
+    int puntYards =
+        basePuntYards - (puntVariance ~/ 2) + _random.nextInt(puntVariance);
 
     // Ensure punt doesn't go past opponent goal line
     puntYards = puntYards.clamp(0, distanceToGoal);
 
-    // Small chance of blocked punt (base rate without specialized coaching)
-    double blockChance = 0.5; // Base 0.5% chance
-    final isBlocked = _random.nextInt(200) == 0;
+    // Check for blocked punt using modified block chance
+    baseBlockChance = baseBlockChance.clamp(
+      0.1,
+      5.0,
+    ); // Keep within reasonable bounds
+    final blockRoll = _random.nextInt(
+      10000,
+    ); // Use higher precision for small percentages
+    final isBlocked = blockRoll < (baseBlockChance * 100).round();
 
     // Select players for punt
     final punter = _selectPunter(offensiveTeam);
@@ -2275,7 +2450,7 @@ class PlaySimulator {
     }
 
     final referee = playCall.referee as Referee;
-    
+
     // Base penalty chances by play type (percentage)
     double basePenaltyChance;
     List<String> potentialPenalties;
@@ -2296,7 +2471,7 @@ class PlaySimulator {
         basePenaltyChance = 12.0; // 12% base chance
         potentialPenalties = [
           'Holding',
-          'Pass Interference', 
+          'Pass Interference',
           'False Start',
           'Illegal Formation',
           'Delay of Game',
@@ -2340,13 +2515,15 @@ class PlaySimulator {
     // Apply head coach discipline modifier if available
     if (playCall.coaching?.headCoach != null) {
       final headCoach = playCall.coaching!.headCoach as HeadCoach;
-      double disciplineModifier = (headCoach.leadership - 50.0) / 100.0; // Scale -0.5 to +0.5
-      situationalModifier += disciplineModifier; // Better leadership = fewer penalties
+      double disciplineModifier =
+          (headCoach.motivation - 50.0) / 100.0; // Scale -0.5 to +0.5
+      situationalModifier +=
+          disciplineModifier; // Better leadership = fewer penalties
     }
 
     // Calculate final penalty chance
     double finalPenaltyChance = basePenaltyChance * situationalModifier;
-    
+
     // Check if penalty occurs
     if (_random.nextInt(100) >= finalPenaltyChance) {
       return (false, null);
@@ -2354,7 +2531,7 @@ class PlaySimulator {
 
     // Select penalty type based on referee tendencies
     String? selectedPenalty = _selectPenaltyType(referee, potentialPenalties);
-    
+
     return (true, selectedPenalty);
   }
 
@@ -2372,10 +2549,15 @@ class PlaySimulator {
 
       switch (penalty) {
         case 'Holding':
-          weight = (referee.holdingTendency + referee.offensiveHoldingTendency) / 2.0;
+          weight =
+              (referee.holdingTendency + referee.offensiveHoldingTendency) /
+              2.0;
           break;
         case 'Pass Interference':
-          weight = (referee.passInterferenceTendency + referee.defensivePassInterferenceTendency) / 2.0;
+          weight =
+              (referee.passInterferenceTendency +
+                  referee.defensivePassInterferenceTendency) /
+              2.0;
           break;
         case 'Roughing the Passer':
           weight = referee.roughingThePasserTendency.toDouble();
@@ -2410,7 +2592,7 @@ class PlaySimulator {
     // Weighted random selection
     double totalWeight = penaltyWeights.values.reduce((a, b) => a + b);
     double randomValue = _random.nextDouble() * totalWeight;
-    
+
     double currentWeight = 0.0;
     for (MapEntry<String, double> entry in penaltyWeights.entries) {
       currentWeight += entry.value;
@@ -2437,11 +2619,14 @@ class PlaySimulator {
     }
 
     final headCoach = playCall.coaching!.headCoach as HeadCoach;
-    
+
     // Calculate head coach impact modifiers
-    double gameManagementModifier = (headCoach.gameManagement - 50.0) / 50.0; // Scale -1.0 to +1.0
-    double leadershipModifier = (headCoach.leadership - 50.0) / 50.0; // Scale -1.0 to +1.0
-    double schemeModifier = (headCoach.schemeKnowledge - 50.0) / 50.0; // Scale -1.0 to +1.0
+    double gameManagementModifier =
+        (headCoach.gameManagement - 50.0) / 50.0; // Scale -1.0 to +1.0
+    double leadershipModifier =
+        (headCoach.motivation - 50.0) / 50.0; // Scale -1.0 to +1.0
+    double schemeModifier =
+        (headCoach.playCalling - 50.0) / 50.0; // Scale -1.0 to +1.0
 
     // Apply modifications
     int modifiedYards = baseResult.yardsGained;
@@ -2451,7 +2636,8 @@ class PlaySimulator {
     // Scheme knowledge affects play execution (slight yard bonus/penalty)
     if (schemeModifier != 0.0) {
       double yardModification = schemeModifier * 0.5; // Max ±0.5 yards average
-      int yardAdjustment = (yardModification + (_random.nextDouble() - 0.5)).round();
+      int yardAdjustment = (yardModification + (_random.nextDouble() - 0.5))
+          .round();
       modifiedYards += yardAdjustment;
     }
 
@@ -2465,16 +2651,21 @@ class PlaySimulator {
 
     // Game management affects time elapsed (better management = more efficient)
     if (gameManagementModifier != 0.0) {
-      double timeModification = -gameManagementModifier * 2.0; // Better management = less time
+      double timeModification =
+          -gameManagementModifier * 2.0; // Better management = less time
       int timeAdjustment = timeModification.round();
-      int newTimeSeconds = (modifiedTime.inSeconds + timeAdjustment).clamp(3, 60);
+      int newTimeSeconds = (modifiedTime.inSeconds + timeAdjustment).clamp(
+        3,
+        60,
+      );
       modifiedTime = Duration(seconds: newTimeSeconds);
     }
 
     // Recalculate dependent fields
     final distanceToGoal = 100 - gameState.yardLine;
     final isScore = modifiedYards >= distanceToGoal && modifiedYards > 0;
-    final isFirstDown = !isScore && !modifiedTurnover && modifiedYards >= gameState.yardsToGo;
+    final isFirstDown =
+        !isScore && !modifiedTurnover && modifiedYards >= gameState.yardsToGo;
 
     return PlayResult(
       playType: baseResult.playType,
@@ -2489,6 +2680,76 @@ class PlaySimulator {
       defender: baseResult.defender,
       involvedPlayers: baseResult.involvedPlayers,
     );
+  }
+
+  /// Determines if a punt situation involves significant defensive pressure.
+  ///
+  /// Analyzes game context to identify high-pressure punt situations where
+  /// pressure resistance becomes more important for punter performance.
+  bool _isPressureSituation(GameState gameState) {
+    // Critical game situations that increase defensive pressure intensity
+
+    // Time pressure: End of half or game situations
+    // Note: GameState doesn't have timeLeft, so we'll use quarter and down as proxies
+    bool timePressed = false;
+    if (gameState.quarter >= 4) {
+      // 4th quarter creates more urgency
+      timePressed = true;
+    }
+
+    // Field position pressure: Deep in own territory
+    bool fieldPositionPressure = gameState.yardLine < 25;
+
+    // Down and distance pressure: 4th down situations create more urgency
+    bool situationalPressure = gameState.down == 4;
+
+    // Score differential pressure: Close games create more intensity
+    // Note: We don't have score in GameState, so we'll use other factors
+
+    // High pressure if multiple factors are present
+    int pressureFactors = 0;
+    if (timePressed) pressureFactors++;
+    if (fieldPositionPressure) pressureFactors++;
+    if (situationalPressure) pressureFactors++;
+
+    // Return true if 2 or more pressure factors are present, or any single critical factor
+    return pressureFactors >= 2 || situationalPressure;
+  }
+
+  /// Calculates defensive pressure intensity based on personnel and situation.
+  ///
+  /// Evaluates defensive player attributes and game context to determine
+  /// the level of pass rush pressure the punter will face.
+  double _calculateDefensivePressure(
+    dynamic players,
+    bool isPressureSituation,
+  ) {
+    // Base pressure starts at league average
+    double pressureIntensity = 50.0;
+
+    // Get defensive line rating if available
+    // Check if players has the defensiveLineRating property
+    try {
+      if (players != null && players.defensiveLineRating != null) {
+        pressureIntensity = players.defensiveLineRating.toDouble();
+      }
+    } catch (e) {
+      // If accessing defensiveLineRating fails, keep default value
+      pressureIntensity = 50.0;
+    }
+
+    // Situational pressure bonus
+    if (isPressureSituation) {
+      pressureIntensity +=
+          10.0; // +10 rating points for high-pressure situations
+    }
+
+    // Add some random variance to represent game-to-game defensive intensity
+    double variance = (_random.nextDouble() - 0.5) * 10.0; // ±5 points
+    pressureIntensity += variance;
+
+    // Clamp to reasonable bounds
+    return pressureIntensity.clamp(20.0, 90.0);
   }
 
   /// Balanced defense provides neutral modifications against all play types

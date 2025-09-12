@@ -380,7 +380,7 @@ class EnhancedPlaySimulator {
     return 50; // Default if attribute not found for position
   }
 
-  /// Calculates total offensive line pass blocking rating
+  /// Calculates total offensive line pass blocking rating with Strength consideration
   double _calculateOffensiveLinePassBlocking(Team team) {
     final oLinemen = team.roster
         .where(
@@ -391,14 +391,20 @@ class EnhancedPlaySimulator {
     if (oLinemen.isEmpty) return 50.0;
 
     double totalBlocking = 0;
+    double totalStrength = 0;
+    
     for (final lineman in oLinemen) {
       totalBlocking += _getPlayerAttribute(lineman, 'Pass Blocking');
+      totalStrength += _getPlayerAttribute(lineman, 'Strength');
     }
 
-    return totalBlocking / oLinemen.length;
+    final avgPassBlocking = totalBlocking / oLinemen.length;
+    final avgOLStrength = totalStrength / oLinemen.length;
+
+    return avgPassBlocking + (avgOLStrength - 50) / 4.0; // Strength provides up to ±12.5 point modifier
   }
 
-  /// Calculates total offensive line run blocking rating
+  /// Calculates total offensive line run blocking rating with Strength consideration
   double _calculateOffensiveLineRunBlocking(Team team) {
     final oLinemen = team.roster
         .where(
@@ -409,14 +415,21 @@ class EnhancedPlaySimulator {
     if (oLinemen.isEmpty) return 50.0;
 
     double totalBlocking = 0;
+    double totalStrength = 0;
+    
     for (final lineman in oLinemen) {
       totalBlocking += _getPlayerAttribute(lineman, 'Run Blocking');
+      totalStrength += _getPlayerAttribute(lineman, 'Strength');
     }
 
-    return totalBlocking / oLinemen.length;
+    final avgRunBlocking = totalBlocking / oLinemen.length;
+    final avgOLStrength = totalStrength / oLinemen.length;
+
+    // Strength has more impact on run blocking than pass blocking
+    return avgRunBlocking + (avgOLStrength - 50) / 3.0; // Strength provides up to ±16.7 point modifier
   }
 
-  /// Calculates defensive pass rush rating
+  /// Calculates defensive pass rush rating with Strength consideration
   double _calculateDefensivePassRush(Team team) {
     final passRushers = team.roster
         .where(
@@ -428,19 +441,32 @@ class EnhancedPlaySimulator {
     if (passRushers.isEmpty) return 50.0;
 
     double totalRush = 0;
+    double totalStrength = 0;
+    int dlineCount = 0;
+    
     for (final rusher in passRushers) {
       if (['DE', 'DT', 'NT', 'DL'].contains(rusher.primaryPosition)) {
         totalRush += _getPlayerAttribute(rusher, 'Pass Rush');
+        totalStrength += _getPlayerAttribute(rusher, 'Strength');
+        dlineCount++;
       } else {
         // Linebackers - use tackling as pass rush approximation
         totalRush += _getPlayerAttribute(rusher, 'Tackling') * 0.7;
       }
     }
 
-    return totalRush / passRushers.length;
+    final avgPassRush = totalRush / passRushers.length;
+    
+    // Apply strength modifier only from defensive linemen (not LBs)
+    if (dlineCount > 0) {
+      final avgDLStrength = totalStrength / dlineCount;
+      return avgPassRush + (avgDLStrength - 50) / 4.0; // Strength provides up to ±12.5 point modifier
+    }
+    
+    return avgPassRush;
   }
 
-  /// Calculates defensive run stopping rating
+  /// Calculates defensive run stopping rating with Strength consideration
   double _calculateDefensiveRunStopping(Team team) {
     final runStoppers = team.roster
         .where(
@@ -460,15 +486,30 @@ class EnhancedPlaySimulator {
     if (runStoppers.isEmpty) return 50.0;
 
     double totalStopping = 0;
+    double totalStrength = 0;
+    int dlineCount = 0;
+    
     for (final stopper in runStoppers) {
       if (['DE', 'DT', 'NT', 'DL'].contains(stopper.primaryPosition)) {
         totalStopping += _getPlayerAttribute(stopper, 'Run Defense');
+        totalStrength += _getPlayerAttribute(stopper, 'Strength');
+        dlineCount++;
       } else {
+        // Linebackers - use tackling for run stopping
         totalStopping += _getPlayerAttribute(stopper, 'Tackling');
       }
     }
 
-    return totalStopping / runStoppers.length;
+    final avgRunStopping = totalStopping / runStoppers.length;
+    
+    // Apply strength modifier only from defensive linemen (not LBs)
+    if (dlineCount > 0) {
+      final avgDLStrength = totalStrength / dlineCount;
+      // Strength has more impact on run defense than pass rush (matches OL run blocking)
+      return avgRunStopping + (avgDLStrength - 50) / 3.0; // Strength provides up to ±16.7 point modifier
+    }
+    
+    return avgRunStopping;
   }
 
   /// Helper methods for player selection
@@ -606,28 +647,56 @@ class EnhancedPlaySimulator {
     final offCoordinator = offense.staff?.offensiveCoordinator;
     final defCoordinator = defense.staff?.defensiveCoordinator;
 
+    double totalModifier = 0.0;
+
+    // Apply offensive coordinator bonuses
     if (offCoordinator != null &&
         result.playType != PlayType.punt &&
         result.playType != PlayType.fieldGoal) {
-      // Apply offensive coordinator bonuses
-      double bonus = 0.0;
+      double offBonus = 0.0;
 
       if (result.playType == PlayType.pass) {
-        bonus =
+        // Higher passing offense and play calling = more positive impact on offensive yards
+        offBonus =
             (offCoordinator.passingOffense + offCoordinator.playCalling - 100) /
             400.0;
       } else if (result.playType == PlayType.rush) {
-        bonus =
+        // Higher rushing offense and play calling = more positive impact on offensive yards
+        offBonus =
             (offCoordinator.rushingOffense + offCoordinator.playCalling - 100) /
             400.0;
       }
 
-      if (bonus.abs() > 0.01) {
-        final yardsBonus = (bonus * 3).round(); // Small yards bonus/penalty
-        final newYards = result.yardsGained + yardsBonus;
+      totalModifier += offBonus;
+    }
 
-        return result.copyWith(yardsGained: newYards);
+    // Apply defensive coordinator penalties (negative modifiers)
+    if (defCoordinator != null &&
+        result.playType != PlayType.punt &&
+        result.playType != PlayType.fieldGoal) {
+      double defPenalty = 0.0;
+
+      if (result.playType == PlayType.pass) {
+        // Higher passingDefense and defensivePlayCalling = more negative impact on offensive yards
+        defPenalty =
+            -(defCoordinator.passingDefense + defCoordinator.defensivePlayCalling - 100) /
+            400.0;
+      } else if (result.playType == PlayType.rush) {
+        // Higher rushingDefense and defensivePlayCalling = more negative impact on offensive yards
+        defPenalty =
+            -(defCoordinator.rushingDefense + defCoordinator.defensivePlayCalling - 100) /
+            400.0;
       }
+
+      totalModifier += defPenalty;
+    }
+
+    // Apply combined modifier if significant
+    if (totalModifier.abs() > 0.01) {
+      final yardsModifier = (totalModifier * 3).round(); // Small yards modifier
+      final newYards = result.yardsGained + yardsModifier;
+
+      return result.copyWith(yardsGained: newYards);
     }
 
     return result;
